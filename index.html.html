@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Payment System</title>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #00C853;
+            --primary-dark: #009624;
+            --dark: #121212;
+            --darker: #0A0A0A;
+            --light: #E0E0E0;
+            --error: #FF5252;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--dark);
+            color: var(--light);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }
+        
+        .mode-toggle {
+            display: flex;
+            background-color: var(--darker);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .mode-btn {
+            padding: 8px 15px;
+            border: none;
+            background: none;
+            color: var(--light);
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .mode-btn.active {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+        
+        .balance-card {
+            background-color: var(--darker);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border-left: 4px solid var(--primary);
+        }
+        
+        .balance-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #888;
+        }
+        
+        .balance-amount {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .section {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+        
+        .section-title i {
+            font-size: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background-color: var(--darker);
+            color: var(--light);
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0, 200, 83, 0.2);
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            border: none;
+            background-color: var(--primary);
+            color: var(--dark);
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        button:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 200, 83, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background-color: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        .qr-container {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            max-width: 250px;
+            margin: 20px auto;
+            text-align: center;
+        }
+        
+        #qrCode {
+            margin: 0 auto;
+        }
+        
+        .pin-display {
+            font-size: 28px;
+            letter-spacing: 5px;
+            text-align: center;
+            padding: 15px;
+            background-color: var(--darker);
+            border-radius: 8px;
+            margin: 20px 0;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        .error-message {
+            color: var(--error);
+            margin-top: 10px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .receipt {
+            background-color: var(--darker);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+        
+        .receipt h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #333;
+        }
+        
+        .receipt-label {
+            color: #888;
+        }
+        
+        .scanner-container {
+            position: relative;
+            width: 100%;
+            margin: 20px 0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        #scanner {
+            width: 100%;
+            height: 300px;
+            background-color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        #scanner-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .scanner-frame {
+            width: 70%;
+            height: 70%;
+            border: 4px solid var(--primary);
+            border-radius: 8px;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7);
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #333;
+            z-index: 1;
+        }
+        
+        .step-indicator {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background-color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .step-indicator.active {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+        
+        .step-indicator.completed {
+            background-color: var(--primary-dark);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #333;
+            margin-top: 20px;
+        }
+        
+        .network-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        
+        .network-status i {
+            color: var(--primary);
+            font-size: 12px;
+        }
+        
+        .camera-permission {
+            background-color: rgba(255, 82, 82, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--error);
+        }
+        
+        .camera-permission i {
+            margin-right: 10px;
+            color: var(--error);
+        }
+        
+        .manual-entry {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+        
+        .manual-entry-title {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #888;
+        }
+        
+        .permission-steps {
+            text-align: left;
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        
+        .permission-steps li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-exchange-alt"></i> P2P Payments</h1>
+            <div class="network-status">
+                <i class="fas fa-circle" id="wifiIcon"></i>
+                <span id="networkStatus">Ready</span>
+            </div>
+        </header>
+        
+        <div class="camera-permission" id="cameraPermissionAlert" style="display: none;">
+            <i class="fas fa-video-slash"></i>
+            <span id="permissionMessage">Camera access is required for scanning QR codes.</span>
+            <div id="androidInstructions" style="display: none;">
+                <p>To enable camera access:</p>
+                <ol class="permission-steps">
+                    <li>Tap the lock icon (🔒) in your browser's address bar</li>
+                    <li>Select "Site settings"</li>
+                    <li>Change "Camera" to "Allow"</li>
+                    <li>Refresh this page</li>
+                </ol>
+            </div>
+            <button id="enableCameraBtn">
+                <i class="fas fa-camera"></i>
+                Enable Camera
+            </button>
+        </div>
+        
+        <div class="mode-toggle">
+            <button id="senderBtn" class="mode-btn active">
+                <i class="fas fa-qrcode"></i> Sender
+            </button>
+            <button id="receiverBtn" class="mode-btn">
+                <i class="fas fa-camera"></i> Receiver
+            </button>
+        </div>
+        
+        <div class="balance-card">
+            <div class="balance-title">
+                <i class="fas fa-wallet"></i>
+                <span>Your Balance</span>
+            </div>
+            <div class="balance-amount">$<span id="balanceAmount">1000.00</span></div>
+        </div>
+        
+        <!-- SENDER MODE SECTIONS -->
+        <div id="senderMode">
+            <!-- Step 1: Generate PIN -->
+            <div id="senderStep1" class="section active">
+                <div class="section-title">
+                    <i class="fas fa-key"></i>
+                    <h2>Generate Security PIN</h2>
+                </div>
+                <p>Create a secure PIN to share with the recipient.</p>
+                
+                <button id="generatePinBtn">
+                    <i class="fas fa-key"></i>
+                    Generate PIN
+                </button>
+                
+                <div id="pinDisplay" class="pin-display" style="display: none;"></div>
+            </div>
+            
+            <!-- Step 2: Enter Amount -->
+            <div id="senderStep2" class="section">
+                <div class="section-title">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <h2>Enter Amount</h2>
+                </div>
+                <p>Enter the amount you want to send to the recipient.</p>
+                
+                <div class="form-group">
+                    <label for="amount">Amount ($)</label>
+                    <input type="number" id="amount" placeholder="0.00" min="0.01" step="0.01">
+                    <div id="amountError" class="error-message"></div>
+                </div>
+                
+                <button id="verifyAmountBtn" disabled>
+                    <i class="fas fa-check"></i>
+                    Verify Amount
+                </button>
+            </div>
+            
+            <!-- Step 3: Generate QR Code -->
+            <div id="senderStep3" class="section">
+                <div class="section-title">
+                    <i class="fas fa-qrcode"></i>
+                    <h2>Generate Payment QR</h2>
+                </div>
+                <p>Show this QR code to the recipient to complete the transaction.</p>
+                
+                <div class="qr-container">
+                    <div id="qrCode"></div>
+                </div>
+                
+                <div id="transactionInfo" style="display: none;">
+                    <div class="receipt-item">
+                        <span class="receipt-label">PIN:</span>
+                        <span id="displayPin"></span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Amount:</span>
+                        <span id="displayAmount"></span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Transaction ID:</span>
+                        <span id="displayTxId"></span>
+                    </div>
+                </div>
+                
+                <button id="confirmPaymentBtn">
+                    <i class="fas fa-paper-plane"></i>
+                    Confirm Payment
+                </button>
+            </div>
+            
+            <!-- Step 4: Payment Complete -->
+            <div id="senderStep4" class="section">
+                <div class="section-title">
+                    <i class="fas fa-check-circle"></i>
+                    <h2>Payment Successful</h2>
+                </div>
+                <p>The payment has been successfully processed.</p>
+                
+                <div class="receipt">
+                    <h3><i class="fas fa-receipt"></i> Transaction Receipt</h3>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Status:</span>
+                        <span style="color: var(--primary);">Completed</span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Transaction ID:</span>
+                        <span id="receiptTxId"></span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Date:</span>
+                        <span id="receiptDate"></span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Amount Sent:</span>
+                        <span id="receiptAmount"></span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">New Balance:</span>
+                        <span id="receiptBalance"></span>
+                    </div>
+                </div>
+                
+                <button id="newPaymentBtn">
+                    <i class="fas fa-redo"></i>
+                    Start New Payment
+                </button>
+            </div>
+            
+            <div class="progress-steps">
+                <div id="senderStepIndicator1" class="step-indicator active">1</div>
+                <div id="senderStepIndicator2" class="step-indicator">2</div>
+                <div id="senderStepIndicator3" class="step-indicator">3</div>
+                <div id="senderStepIndicator4" class="step-indicator">4</div>
+            </div>
+        </div>
+        
+        <!-- RECEIVER MODE SECTIONS -->
+        <div id="receiverMode" style="display: none;">
+            <!-- Step 1: Scan QR Code -->
+            <div id="receiverStep1" class="section active">
+                <div class="section-title">
+                    <i class="fas fa-qrcode"></i>
+                    <h2>Receive Payment</h2>
+                </div>
+                
+                <div class="scanner-container">
+                    <div id="scanner">
+                        <video id="scanner-video" playsinline></video>
+                        <div class="scanner-overlay">
+                            <div class="scanner-frame"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p id="scanStatus" style="text-align: center; margin: 10px 0;">Initializing camera...</p>
+                
+                <div class="manual-entry">
+                    <div class="manual-entry-title">
+                        <p>Or enter details manually:</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualTxId">Transaction ID</label>
+                        <input type="text" id="manualTxId" placeholder="Enter transaction ID">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualAmount">Amount ($)</label>
+                        <input type="number" id="manualAmount" placeholder="0.00" min="0.01" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualPin">Security PIN</label>
+                        <input type="text" id="manualPin" placeholder="Enter 4-digit PIN" maxlength="4" inputmode="numeric">
+                        <div id="manualPinError" class="error-message"></div>
+                    </div>
+                    
+                    <button id="manualSubmitBtn">
+                        <i class="fas fa-check"></i>
+                        Submit Payment Details
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 2: Enter PIN -->
+            <div id="receiverStep2" class="section">
+                <div class="section-title">
+                    <i class="fas fa-key"></i>
+                    <h2>Verify Security PIN</h2>
+                </div>
+                <p>Enter the 4-digit PIN provided by the sender to confirm the transaction.</p>
+                
+                <div class="form-group">
+                    <label for="pinInput">Security PIN</label>
+                    <input type="text" id="pinInput" placeholder="Enter 4-digit PIN" maxlength="4" inputmode="numeric">
+                    <div id="pinError" class="error-message"></div>
+                </div>
+                
+                <button id="verifyPinBtn">
+                    <i class="fas fa-check"></i>
+                    Verify PIN
+                </button>
+            </div>
+            
+            <!-- Step 3: Confirm Payment -->
+            <div id="receiverStep3" class="section">
+                <div class="section-title">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <h2>Confirm Payment</h2>
+                </div>
+                <p>Review the transaction details before confirming.</p>
+                
+                <div class="receipt">
+                    <h3><i class="fas fa-receipt"></i> Transaction Details</h3>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Amount:</span>
+                        <span id="confirmAmount"></span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">From:</span>
+                        <span>Sender Device</span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Transaction ID:</span>
+                        <span id="confirmTxId"></span>
+                    </div>
+                </div>
+                
+                <button id="confirmReceiveBtn">
+                    <i class="fas fa-check-circle"></i>
+                    Confirm Receipt
+                </button>
+            </div>
+            
+            <!-- Step 4: Payment Received -->
+            <div id="receiverStep4" class="section">
+                <div class="section-title">
+                    <i class="fas fa-check-circle"></i>
+                    <h2>Payment Received</h2>
+                </div>
+                <p>The payment has been successfully added to your balance.</p>
+                
+                <div class="receipt">
+                    <h3><i class="fas fa-receipt"></i> Transaction Receipt</h3>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Status:</span>
+                        <span style="color: var(--primary);">Completed</span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Transaction ID:</span>
+                        <span id="receiverReceiptTxId"></span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Date:</span>
+                        <span id="receiverReceiptDate"></span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">Amount Received:</span>
+                        <span id="receiverReceiptAmount"></span>
+                    </div>
+                    <div class="receipt-item">
+                        <span class="receipt-label">New Balance:</span>
+                        <span id="receiverReceiptBalance"></span>
+                    </div>
+                </div>
+                
+                <button id="newReceiveBtn">
+                    <i class="fas fa-redo"></i>
+                    Receive Another Payment
+                </button>
+            </div>
+            
+            <div class="progress-steps">
+                <div id="receiverStepIndicator1" class="step-indicator active">1</div>
+                <div id="receiverStepIndicator2" class="step-indicator">2</div>
+                <div id="receiverStepIndicator3" class="step-indicator">3</div>
+                <div id="receiverStepIndicator4" class="step-indicator">4</div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>P2P Payment System &copy; 2023 | Works Offline</p>
+        </footer>
+    </div>
+
+    <script>
+        // Global variables
+        let currentBalance = 1000.00;
+        let generatedPin = '';
+        let transactionAmount = 0;
+        let transactionId = '';
+        let qrCode = null;
+        let videoStream = null;
+        let scannerInterval = null;
+        let scannedData = null;
+        let currentMode = 'sender';
+        let cameraPermissionGranted = false;
+        let isAndroid = /Android/i.test(navigator.userAgent);
+        
+        // DOM elements
+        const balanceAmountEl = document.getElementById('balanceAmount');
+        const cameraPermissionAlert = document.getElementById('cameraPermissionAlert');
+        const permissionMessage = document.getElementById('permissionMessage');
+        const androidInstructions = document.getElementById('androidInstructions');
+        const scanStatusEl = document.getElementById('scanStatus');
+        
+        // Initialize immediately when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Check camera permissions immediately
+            checkCameraPermissions();
+        });
+
+        function setupEventListeners() {
+            // Mode toggle
+            document.getElementById('senderBtn').addEventListener('click', () => switchMode('sender'));
+            document.getElementById('receiverBtn').addEventListener('click', () => switchMode('receiver'));
+            
+            // Camera permission
+            document.getElementById('enableCameraBtn').addEventListener('click', requestCameraAccess);
+            
+            // Sender functions
+            document.getElementById('generatePinBtn').addEventListener('click', generatePin);
+            document.getElementById('verifyAmountBtn').addEventListener('click', verifyAmount);
+            document.getElementById('confirmPaymentBtn').addEventListener('click', confirmPayment);
+            document.getElementById('newPaymentBtn').addEventListener('click', resetSenderForm);
+            document.getElementById('amount').addEventListener('input', validateAmount);
+            
+            // Receiver functions
+            document.getElementById('verifyPinBtn').addEventListener('click', verifyPin);
+            document.getElementById('confirmReceiveBtn').addEventListener('click', confirmReceive);
+            document.getElementById('newReceiveBtn').addEventListener('click', resetReceiverScanner);
+            document.getElementById('pinInput').addEventListener('input', validatePin);
+            document.getElementById('manualSubmitBtn').addEventListener('click', handleManualEntry);
+        }
+
+        async function checkCameraPermissions() {
+            try {
+                // Check if we have camera access
+                if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    cameraPermissionGranted = devices.some(device => 
+                        device.kind === 'videoinput' && device.label !== '');
+                    
+                    if (cameraPermissionGranted) {
+                        // If we're in receiver mode, start camera immediately
+                        if (currentMode === 'receiver') {
+                            initReceiverScanner();
+                        }
+                    } else {
+                        showCameraPermissionAlert();
+                    }
+                }
+            } catch (err) {
+                console.error("Error checking camera permissions:", err);
+                showCameraPermissionAlert();
+            }
+        }
+
+        function showCameraPermissionAlert() {
+            cameraPermissionAlert.style.display = 'block';
+            
+            if (isAndroid) {
+                androidInstructions.style.display = 'block';
+                permissionMessage.textContent = "Camera access is required for scanning QR codes.";
+            } else {
+                androidInstructions.style.display = 'none';
+                permissionMessage.textContent = "Please allow camera access to scan QR codes.";
+            }
+        }
+
+        function hideCameraPermissionAlert() {
+            cameraPermissionAlert.style.display = 'none';
+        }
+
+        async function requestCameraAccess() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                cameraPermissionGranted = true;
+                hideCameraPermissionAlert();
+                
+                // Stop the stream immediately (we'll start properly when needed)
+                stream.getTracks().forEach(track => track.stop());
+                
+                // If in receiver mode, initialize scanner
+                if (currentMode === 'receiver') {
+                    initReceiverScanner();
+                }
+            } catch (err) {
+                console.error("Camera access denied:", err);
+                scanStatusEl.textContent = "Camera access denied. Please enable camera permissions.";
+                scanStatusEl.style.color = "var(--error)";
+                showCameraPermissionAlert();
+            }
+        }
+
+        // Switch between sender and receiver modes
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            if (mode === 'sender') {
+                document.getElementById('senderBtn').classList.add('active');
+                document.getElementById('receiverBtn').classList.remove('active');
+                document.getElementById('senderMode').style.display = 'block';
+                document.getElementById('receiverMode').style.display = 'none';
+                
+                // Stop camera if running
+                stopCamera();
+            } else {
+                document.getElementById('senderBtn').classList.remove('active');
+                document.getElementById('receiverBtn').classList.add('active');
+                document.getElementById('senderMode').style.display = 'none';
+                document.getElementById('receiverMode').style.display = 'block';
+                
+                // Initialize scanner if permission granted
+                if (cameraPermissionGranted) {
+                    initReceiverScanner();
+                } else {
+                    scanStatusEl.textContent = "Camera access required";
+                    showCameraPermissionAlert();
+                }
+            }
+        }
+        
+        // Initialize QR code scanner
+        async function initReceiverScanner() {
+            if (currentMode !== 'receiver') return;
+            
+            // Stop any existing stream
+            stopCamera();
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                cameraPermissionGranted = true;
+                hideCameraPermissionAlert();
+                videoStream = stream;
+                document.getElementById('scanner-video').srcObject = stream;
+                
+                document.getElementById('scanner-video').onplaying = function() {
+                    scanStatusEl.textContent = "Scanning for QR codes...";
+                    scanStatusEl.style.color = "";
+                    
+                    // Start scanning for QR codes
+                    if (scannerInterval) {
+                        clearInterval(scannerInterval);
+                    }
+                    scannerInterval = setInterval(scanQRCode, 500);
+                };
+                
+                await document.getElementById('scanner-video').play();
+                
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                cameraPermissionGranted = false;
+                scanStatusEl.textContent = "Camera not available - enter details manually";
+                scanStatusEl.style.color = "#888";
+                showCameraPermissionAlert();
+            }
+        }
+
+        // Stop camera
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            if (scannerInterval) {
+                clearInterval(scannerInterval);
+                scannerInterval = null;
+            }
+        }
+        
+        /* SENDER FUNCTIONS */
+        
+        function generatePin() {
+            const generatePinBtn = document.getElementById('generatePinBtn');
+            generatePinBtn.disabled = true;
+            generatePinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            
+            setTimeout(() => {
+                generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
+                document.getElementById('pinDisplay').textContent = generatedPin;
+                document.getElementById('pinDisplay').style.display = 'block';
+                
+                generatePinBtn.innerHTML = '<i class="fas fa-check"></i> PIN Generated';
+                
+                // Move to next step
+                setTimeout(() => {
+                    updateSenderProgress(1);
+                    document.getElementById('senderStep1').classList.remove('active');
+                    document.getElementById('senderStep2').classList.add('active');
+                }, 800);
+            }, 1000);
+        }
+        
+        function validateAmount() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const verifyAmountBtn = document.getElementById('verifyAmountBtn');
+            
+            if (isNaN(amount)) {
+                verifyAmountBtn.disabled = true;
+                return;
+            }
+            
+            if (amount <= 0) {
+                showError('Amount must be greater than 0', document.getElementById('amountError'));
+                verifyAmountBtn.disabled = true;
+                return;
+            }
+            
+            if (amount > currentBalance) {
+                showError('Insufficient balance', document.getElementById('amountError'));
+                verifyAmountBtn.disabled = true;
+                return;
+            }
+            
+            hideError(document.getElementById('amountError'));
+            verifyAmountBtn.disabled = false;
+        }
+        
+        function verifyAmount() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const verifyAmountBtn = document.getElementById('verifyAmountBtn');
+            
+            if (isNaN(amount)) {
+                showError('Please enter a valid amount', document.getElementById('amountError'));
+                return;
+            }
+            
+            if (amount <= 0) {
+                showError('Amount must be greater than 0', document.getElementById('amountError'));
+                return;
+            }
+            
+            if (amount > currentBalance) {
+                showError('Insufficient balance', document.getElementById('amountError'));
+                return;
+            }
+            
+            transactionAmount = amount;
+            verifyAmountBtn.disabled = true;
+            verifyAmountBtn.innerHTML = '<i class="fas fa-check"></i> Verified';
+            
+            // Move to next step
+            setTimeout(() => {
+                updateSenderProgress(2);
+                document.getElementById('senderStep2').classList.remove('active');
+                document.getElementById('senderStep3').classList.add('active');
+                generateTransaction();
+            }, 800);
+        }
+        
+        function generateTransaction() {
+            // Generate transaction ID
+            transactionId = 'TX' + Date.now().toString().slice(-8);
+            
+            // Get current date
+            const now = new Date();
+            const transactionDate = now.toISOString();
+            
+            // Create transaction data
+            const transactionData = {
+                type: 'p2p_payment',
+                pin: generatedPin,
+                amount: transactionAmount,
+                date: transactionDate,
+                transactionId: transactionId,
+                senderBalance: currentBalance
+            };
+            
+            // Display transaction info
+            document.getElementById('displayPin').textContent = generatedPin;
+            document.getElementById('displayAmount').textContent = '$' + transactionAmount.toFixed(2);
+            document.getElementById('displayTxId').textContent = transactionId;
+            document.getElementById('transactionInfo').style.display = 'block';
+            
+            // Clear previous QR code if exists
+            if (qrCode) {
+                qrCode.clear();
+                qrCode.makeCode(JSON.stringify(transactionData));
+            } else {
+                // Generate new QR code
+                qrCode = new QRCode(document.getElementById('qrCode'), {
+                    text: JSON.stringify(transactionData),
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+        }
+        
+        function confirmPayment() {
+            const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+            confirmPaymentBtn.disabled = true;
+            confirmPaymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                // Deduct amount from balance
+                currentBalance -= transactionAmount;
+                document.getElementById('balanceAmount').textContent = currentBalance.toFixed(2);
+                
+                // Generate receipt
+                const now = new Date();
+                document.getElementById('receiptTxId').textContent = transactionId;
+                document.getElementById('receiptDate').textContent = now.toLocaleString();
+                document.getElementById('receiptAmount').textContent = '$' + transactionAmount.toFixed(2);
+                document.getElementById('receiptBalance').textContent = '$' + currentBalance.toFixed(2);
+                
+                confirmPaymentBtn.innerHTML = '<i class="fas fa-check"></i> Payment Sent';
+                
+                // Move to completion step
+                setTimeout(() => {
+                    updateSenderProgress(3);
+                    document.getElementById('senderStep3').classList.remove('active');
+                    document.getElementById('senderStep4').classList.add('active');
+                    
+                    // Clear QR code after transaction completes
+                    if (qrCode) {
+                        qrCode.clear();
+                        document.getElementById('qrCode').innerHTML = '<p>QR code expired</p>';
+                    }
+                }, 800);
+            }, 1500);
+        }
+        
+        function resetSenderForm() {
+            // Reset values
+            generatedPin = '';
+            transactionAmount = 0;
+            transactionId = '';
+            
+            // Reset displays
+            document.getElementById('pinDisplay').textContent = '';
+            document.getElementById('pinDisplay').style.display = 'none';
+            document.getElementById('amount').value = '';
+            hideError(document.getElementById('amountError'));
+            document.getElementById('transactionInfo').style.display = 'none';
+            
+            // Clear QR code
+            if (qrCode) {
+                qrCode.clear();
+                document.getElementById('qrCode').innerHTML = '';
+            }
+            
+            // Reset buttons
+            document.getElementById('generatePinBtn').disabled = false;
+            document.getElementById('generatePinBtn').innerHTML = '<i class="fas fa-key"></i> Generate PIN';
+            document.getElementById('verifyAmountBtn').disabled = true;
+            document.getElementById('verifyAmountBtn').innerHTML = '<i class="fas fa-check"></i> Verify Amount';
+            document.getElementById('confirmPaymentBtn').disabled = false;
+            document.getElementById('confirmPaymentBtn').innerHTML = '<i class="fas fa-paper-plane"></i> Confirm Payment';
+            
+            // Reset progress
+            updateSenderProgress(0);
+            
+            // Reset steps
+            document.getElementById('senderStep4').classList.remove('active');
+            document.getElementById('senderStep1').classList.add('active');
+        }
+        
+        /* RECEIVER FUNCTIONS */
+        
+        function scanQRCode() {
+            const scannerVideoEl = document.getElementById('scanner-video');
+            if (scannerVideoEl.readyState === scannerVideoEl.HAVE_ENOUGH_DATA) {
+                const canvas = document.createElement('canvas');
+                canvas.width = scannerVideoEl.videoWidth;
+                canvas.height = scannerVideoEl.videoHeight;
+                const canvasContext = canvas.getContext('2d');
+                canvasContext.drawImage(scannerVideoEl, 0, 0, canvas.width, canvas.height);
+                const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+                
+                if (code) {
+                    try {
+                        const data = JSON.parse(code.data);
+                        if (data.type === 'p2p_payment') {
+                            // Valid payment QR code found
+                            clearInterval(scannerInterval);
+                            handleScannedData(data);
+                        }
+                    } catch (e) {
+                        console.error("Error parsing QR code data: ", e);
+                    }
+                }
+            }
+        }
+        
+        function handleScannedData(data) {
+            scannedData = data;
+            
+            // Stop camera
+            stopCamera();
+            
+            // Update UI
+            scanStatusEl.textContent = "QR code scanned successfully!";
+            scanStatusEl.style.color = "var(--primary)";
+            
+            // Proceed to PIN verification
+            showPinEntry();
+        }
+        
+        function handleManualEntry() {
+            const txId = document.getElementById('manualTxId').value;
+            const amount = parseFloat(document.getElementById('manualAmount').value);
+            const pin = document.getElementById('manualPin').value;
+            const manualPinErrorEl = document.getElementById('manualPinError');
+            
+            if (!txId || !amount || !pin) {
+                showError('Please fill all fields', manualPinErrorEl);
+                return;
+            }
+            
+            if (pin.length !== 4) {
+                showError('PIN must be 4 digits', manualPinErrorEl);
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                showError('Please enter a valid amount', manualPinErrorEl);
+                return;
+            }
+            
+            // Create mock scanned data
+            scannedData = {
+                type: 'p2p_payment',
+                pin: pin,
+                amount: amount,
+                transactionId: txId
+            };
+            
+            // Proceed to PIN verification
+            showPinEntry();
+        }
+        
+        function showPinEntry() {
+            updateReceiverProgress(1);
+            document.getElementById('receiverStep1').classList.remove('active');
+            document.getElementById('receiverStep2').classList.add('active');
+        }
+        
+        function validatePin() {
+            const pin = document.getElementById('pinInput').value;
+            
+            if (pin.length === 4) {
+                document.getElementById('verifyPinBtn').disabled = false;
+            } else {
+                document.getElementById('verifyPinBtn').disabled = true;
+            }
+        }
+        
+        function verifyPin() {
+            const enteredPin = document.getElementById('pinInput').value;
+            const pinErrorEl = document.getElementById('pinError');
+            
+            if (enteredPin !== scannedData.pin) {
+                showError('Incorrect PIN. Please try again.', pinErrorEl);
+                return;
+            }
+            
+            // PIN is correct
+            hideError(pinErrorEl);
+            
+            // Display transaction details for confirmation
+            document.getElementById('confirmAmount').textContent = '$' + scannedData.amount.toFixed(2);
+            document.getElementById('confirmTxId').textContent = scannedData.transactionId;
+            
+            // Move to confirmation step
+            updateReceiverProgress(2);
+            document.getElementById('receiverStep2').classList.remove('active');
+            document.getElementById('receiverStep3').classList.add('active');
+        }
+        
+        function confirmReceive() {
+            const confirmReceiveBtn = document.getElementById('confirmReceiveBtn');
+            confirmReceiveBtn.disabled = true;
+            confirmReceiveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                // Add amount to balance
+                currentBalance += scannedData.amount;
+                document.getElementById('balanceAmount').textContent = currentBalance.toFixed(2);
+                
+                // Generate receipt
+                const now = new Date();
+                document.getElementById('receiverReceiptTxId').textContent = scannedData.transactionId;
+                document.getElementById('receiverReceiptDate').textContent = now.toLocaleString();
+                document.getElementById('receiverReceiptAmount').textContent = '$' + scannedData.amount.toFixed(2);
+                document.getElementById('receiverReceiptBalance').textContent = '$' + currentBalance.toFixed(2);
+                
+                confirmReceiveBtn.innerHTML = '<i class="fas fa-check"></i> Payment Received';
+                
+                // Move to completion step
+                setTimeout(() => {
+                    updateReceiverProgress(3);
+                    document.getElementById('receiverStep3').classList.remove('active');
+                    document.getElementById('receiverStep4').classList.add('active');
+                }, 800);
+            }, 1500);
+        }
+        
+        function resetReceiverScanner() {
+            // Reset values
+            scannedData = null;
+            document.getElementById('pinInput').value = '';
+            document.getElementById('manualTxId').value = '';
+            document.getElementById('manualAmount').value = '';
+            document.getElementById('manualPin').value = '';
+            
+            // Reset displays
+            scanStatusEl.textContent = "Ready to scan";
+            scanStatusEl.style.color = "";
+            hideError(document.getElementById('manualPinError'));
+            hideError(document.getElementById('pinError'));
+            
+            // Reset buttons
+            document.getElementById('verifyPinBtn').disabled = true;
+            document.getElementById('verifyPinBtn').innerHTML = '<i class="fas fa-check"></i> Verify PIN';
+            document.getElementById('confirmReceiveBtn').disabled = false;
+            document.getElementById('confirmReceiveBtn').innerHTML = '<i class="fas fa-check-circle"></i> Confirm Receipt';
+            
+            // Reset progress
+            updateReceiverProgress(0);
+            
+            // Reset steps
+            document.getElementById('receiverStep4').classList.remove('active');
+            document.getElementById('receiverStep1').classList.add('active');
+            
+            // Restart scanner if permission granted
+            if (cameraPermissionGranted) {
+                initReceiverScanner();
+            }
+        }
+        
+        /* PROGRESS INDICATORS */
+        
+        function updateSenderProgress(step) {
+            // Reset all indicators
+            document.querySelectorAll('#senderMode .step-indicator').forEach(el => {
+                el.classList.remove('active', 'completed');
+            });
+            
+            // Mark completed steps
+            for (let i = 1; i <= step; i++) {
+                document.getElementById(`senderStepIndicator${i}`).classList.add('completed');
+            }
+            
+            // Set current step as active
+            if (step < 4) {
+                document.getElementById(`senderStepIndicator${step+1}`).classList.add('active');
+            }
+        }
+        
+        function updateReceiverProgress(step) {
+            // Reset all indicators
+            document.querySelectorAll('#receiverMode .step-indicator').forEach(el => {
+                el.classList.remove('active', 'completed');
+            });
+            
+            // Mark completed steps
+            for (let i = 1; i <= step; i++) {
+                document.getElementById(`receiverStepIndicator${i}`).classList.add('completed');
+            }
+            
+            // Set current step as active
+            if (step < 4) {
+                document.getElementById(`receiverStepIndicator${step+1}`).classList.add('active');
+            }
+        }
+        
+        /* HELPER FUNCTIONS */
+        
+        function showError(message, element) {
+            element.textContent = message;
+            element.style.display = 'block';
+            element.style.animation = 'shake 0.5s';
+            setTimeout(() => {
+                element.style.animation = '';
+            }, 500);
+        }
+        
+        function hideError(element) {
+            element.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
